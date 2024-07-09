@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 from hypothesis import given
 from hypothesis.strategies import DataObject, data
@@ -118,6 +119,49 @@ def test_shape_broadcast() -> None:
 
     c = minitorch.shape_broadcast((2, 5), (5,))
     assert c == (2, 5)
+
+
+@pytest.mark.task2_2
+def test_broadcast_index() -> None:
+    # big shape, small shape, big index, small index
+    test_inputs = [
+        [[1, 5, 5], [5, 5], [0, 3, 2], [3, 2]],
+        [
+            [1, 5, 5],
+            [
+                5,
+            ],
+            [0, 3, 2],
+            [2],
+        ],
+        [[5, 5, 5, 5], [1, 5, 1, 5], [1, 2, 3, 4], [0, 2, 0, 4]],
+    ]
+    for big_shape, small_shape, big_index, small_index in test_inputs:
+        in_index = np.array(big_index)
+        out_index = np.zeros(len(small_shape), dtype=np.int32)
+        in_shape = np.array(big_shape)
+        out_shape = np.array(small_shape)
+        minitorch.broadcast_index(in_index, in_shape, out_shape, out_index)
+        assert np.array_equal(out_index, np.array(small_index))
+    error_inputs = [
+        [[1, 5, 5], [5, 1, 5], [0, 3, 2], [3, 2]],
+        [
+            [1, 5, 5],
+            [
+                7,
+            ],
+            [0, 3, 2],
+            [2],
+        ],
+        [[5, 5, 5, 5], [1, 5, 7, 5], [1, 2, 3, 4], [0, 2, 0, 4]],
+    ]
+    for big_shape, small_shape, big_index, _ in error_inputs:
+        in_index = np.array(big_index)
+        out_index = np.zeros(len(small_shape), dtype=np.int32)
+        in_shape = np.array(big_shape)
+        out_shape = np.array(small_shape)
+        with pytest.raises(minitorch.IndexingError):
+            minitorch.broadcast_index(in_index, in_shape, out_shape, out_index)
 
 
 @given(tensor_data())
