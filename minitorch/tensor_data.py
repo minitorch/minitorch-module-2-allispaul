@@ -46,7 +46,7 @@ def index_to_position(index: Index, strides: Strides) -> int:
     return sum(i * s for i, s in zip(index, strides))
 
 
-def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
+def to_index(ordinal: int, shape: Shape | UserShape, out_index: OutIndex) -> None:
     """
     Convert an `ordinal` to an index in the `shape`.
     Should ensure that enumerating position 0 ... size of a
@@ -59,7 +59,7 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
         out_index : return index corresponding to position.
 
     """
-    layout_strides = strides_from_shape(shape.tolist())[:-1]
+    layout_strides = strides_from_shape(tuple(shape))[:-1]
     for ax, stride in enumerate(layout_strides):
         this_ax_pos, ordinal = divmod(ordinal, stride)
         out_index[ax] = this_ax_pos
