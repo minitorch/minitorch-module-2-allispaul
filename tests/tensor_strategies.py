@@ -59,7 +59,7 @@ def tensor_data(
 
 
 @composite
-def indices(draw: DrawFn, layout: Tensor) -> UserIndex:
+def indices(draw: DrawFn, layout: TensorData) -> UserIndex:
     return tuple((draw(integers(min_value=0, max_value=s - 1)) for s in layout.shape))
 
 
