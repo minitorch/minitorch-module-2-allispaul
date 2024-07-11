@@ -11,7 +11,7 @@ MyModule = None
 minitorch
 
 
-def render_math_sandbox(use_scalar=False, use_tensor=False):
+def render_math_sandbox(use_scalar: bool = False, use_tensor: bool = False) -> None:
     st.write("## Sandbox for Math Functions")
     st.write("Visualization of the mathematical tests run on the underlying code.")
 
@@ -20,9 +20,11 @@ def render_math_sandbox(use_scalar=False, use_tensor=False):
     else:
         one, two, red = MathTest._comp_testing()
     f_type = st.selectbox("Function Type", ["One Arg", "Two Arg", "Reduce"])
+    assert f_type is not None
     select = {"One Arg": one, "Two Arg": two, "Reduce": red}
 
     fn = st.selectbox("Function", select[f_type], format_func=lambda a: a[0])
+    assert fn is not None
     name, _, scalar = fn
     if f_type == "One Arg":
         st.write("### " + name)
@@ -42,25 +44,23 @@ def render_math_sandbox(use_scalar=False, use_tensor=False):
 
         if use_scalar:
             st.write("Derivative f'(x)")
-            if use_tensor:
-                x_var = [minitorch.tensor(x, requires_grad=True) for x in xs]
-            else:
-                x_var = [minitorch.Scalar(x) for x in xs]
-            for x in x_var:
-                out = scalar(x)
+            ys = []
+            for x in xs:
                 if use_tensor:
+                    x_tens = minitorch.tensor(x, requires_grad=True)
+                    out = scalar(x_tens)
                     out.backward(minitorch.tensor([1.0]))
+                    assert x_tens.grad is not None
+                    ys.append(x_tens.grad[0])
                 else:
+                    x_scal = minitorch.Scalar(x)
+                    out = scalar(x_scal)
                     out.backward()
-            if use_tensor:
-                scatter = go.Scatter(mode="lines", x=xs, y=[x.grad[0] for x in x_var])
-            else:
-                scatter = go.Scatter(
-                    mode="lines", x=xs, y=[x.derivative for x in x_var]
-                )
+                    ys.append(x_scal.derivative)
+            scatter = go.Scatter(mode="lines", x=xs, y=ys)
             fig = go.Figure(scatter)
             st.write(fig)
-            G = graph_builder.GraphBuilder().run(out)
+            G = graph_builder.GraphBuilder().run(out)  # type: ignore
             G.graph["graph"] = {"rankdir": "LR"}
             st.graphviz_chart(nx.nx_pydot.to_pydot(G).to_string())
 
@@ -99,20 +99,24 @@ def render_math_sandbox(use_scalar=False, use_tensor=False):
 
                 if use_tensor:
                     for y in ys:
-                        x1 = minitorch.tensor([x])
-                        y1 = minitorch.tensor([y])
-                        out = scalar(x1, y1)
+                        x_tens = minitorch.tensor([x])
+                        y_tens = minitorch.tensor([y])
+                        out = scalar(x_tens, y_tens)
                         out.backward(minitorch.tensor([1]))
-                        oa.append((x, y, x1.derivative[0]))
-                        ob.append((x, y, y1.derivative[0]))
+                        assert x_tens.grad is not None
+                        assert y_tens.grad is not None
+                        oa.append((x, y, x_tens.grad[0]))
+                        ob.append((x, y, y_tens.grad[0]))
                 else:
                     for y in ys:
-                        x1 = minitorch.Scalar(x)
-                        y1 = minitorch.Scalar(y)
-                        out = scalar(x1, y1)
+                        x_scal = minitorch.Scalar(x)
+                        y_scal = minitorch.Scalar(y)
+                        out = scalar(x_scal, y_scal)
                         out.backward()
-                        oa.append((x, y, x1.derivative))
-                        ob.append((x, y, y1.derivative))
+                        assert x_scal.derivative is not None
+                        assert y_scal.derivative is not None
+                        oa.append((x, y, x_scal.derivative))
+                        ob.append((x, y, y_scal.derivative))
                 a.append(oa)
                 b.append(ob)
             st.write("Derivative f'_x(x, y)")
