@@ -358,6 +358,7 @@ class Tensor:
         return [
             (inp, inp.expand(self._ensure_tensor(d_in)))
             for inp, d_in in zip(h.inputs, x)
+            if not inp.is_constant()
         ]
 
     def backward(self, grad_output: Optional[Tensor] = None) -> None:
